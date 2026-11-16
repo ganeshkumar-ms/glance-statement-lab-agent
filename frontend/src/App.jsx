@@ -333,11 +333,14 @@ export default function App() {
       }))
 
     try {
-      const result = await analyzeStatement({
-        file: fileToSend,
-        text: cleanText,
-        conversationHistory: historyPayload
-      })
+      const [result] = await Promise.all([
+        analyzeStatement({
+          file: fileToSend,
+          text: cleanText,
+          conversationHistory: historyPayload
+        }),
+        new Promise(res => setTimeout(res, 900))
+      ])
 
       const serverDocMeta = result.document || null
       const syncedMessages = updatedMessages.map(m =>
@@ -645,6 +648,7 @@ export default function App() {
                         <ErrorBoundary>
                           <GlanceResultCard
                             data={msg.data}
+                            guardrails={msg.data?.guardrails || msg.guardrails}
                             onFollowUp={(prompt) => executeSend(prompt, null, currentSessionId)}
                           />
                         </ErrorBoundary>

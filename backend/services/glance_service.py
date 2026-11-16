@@ -1,3 +1,5 @@
+import datetime
+import uuid
 import json
 import os
 import random
@@ -265,11 +267,18 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
     # 2. Sanitize PII & prompt injections
     sanitized_res = guardrail_service.sanitize_input(clean)
     if sanitized_res.get('blocked'):
+        trace_code = f"GLN-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
         return {
             'type': 'chat',
             'message': sanitized_res.get('message', 'Content rejected by Enterprise BFSI Security Guardrails.'),
-            'guardrails': sanitized_res.get('guardrails'),
+            'guardrail_status': 'BLOCKED',
+            'guardrails': sanitized_res.get('guardrails', {"status": "BLOCKED"}),
             'rejected': True,
+            'trace_id': trace_code,
+            'data': {
+                'trace_id': trace_code,
+                'guardrails': sanitized_res.get('guardrails', {"status": "BLOCKED"})
+            }
         }
     safe_text = sanitized_res['text']
 
@@ -328,6 +337,14 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                 raw_output = response['output']['message']['content'][0]['text']
                 parsed = clean_and_parse_json(raw_output)
                 if isinstance(parsed, dict) and ('type' in parsed or 'headline_picture' in parsed or 'message' in parsed):
+                    trace_code = f"GLN-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+                    parsed['trace_id'] = trace_code
+                    parsed['guardrails'] = {
+                        "status": "REDACTED" if sanitized_res.get("pii_detected") else "PASSED",
+                        "pci_dss_sanitized": True,
+                        "redacted_count": sanitized_res.get("guardrails", {}).get("redacted_count", 0),
+                        "redacted_types": sanitized_res.get("guardrails", {}).get("redacted_types", []),
+                    }
                     return parsed
             except Exception as e:
                 print(f"Bedrock Converse ({model}) warning: {e}")
@@ -341,5 +358,10 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
             'type': 'chat',
             'message': "I'm ready to clarify any statement or answer your questions. Paste a financial, bank, billing, or policy statement—or attach a document—and I'll break it down clearly.",
         }
-    return rule_based_statement_fallback(safe_text, file_name)
+    res = rule_based_statement_fallback(safe_text, file_name)
+    trace_code = f"GLN-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    if isinstance(res, dict):
+        res['trace_id'] = trace_code
+        res['guardrails'] = {"status": "PASSED", "pci_dss_sanitized": True}
+    return res
 
