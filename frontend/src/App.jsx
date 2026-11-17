@@ -512,9 +512,9 @@ export default function App() {
               <div className="cards">
                 {sessions.length === 0 ? (
                   <div className="card emptyCard">
-                    <small>READY TO CLARIFY</small>
-                    <b>No previous conversations yet</b>
-                    <p>Paste any statement or attach a file above to see the clear picture.</p>
+                    <small>NOTHING YET</small>
+                    <b>No conversations yet</b>
+                    <p>Message GLANCE or attach a statement above to begin.</p>
                   </div>
                 ) : (
                   sessions.slice(0, 3).map(session => (
