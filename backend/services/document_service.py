@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+import math
 import re
 import xml.etree.ElementTree as ET
 import zipfile
@@ -77,6 +78,37 @@ def _extract_xlsx_stdlib(content_bytes: bytes) -> str:
         return ''
 
 
+def _count_pdf_pages_stdlib(content_bytes: bytes) -> int:
+    try:
+        matches = re.findall(rb'/Type\s*/Page\b', content_bytes)
+        return max(1, len(matches))
+    except Exception:
+        return 1
+
+
+def _extract_pdf_with_bedrock(content_bytes: bytes) -> str:
+    if len(content_bytes) == 0 or len(content_bytes) > 4_500_000:
+        return ''
+    try:
+        import boto3, os
+        region = os.getenv('AWS_DEFAULT_REGION') or os.getenv('AWS_REGION') or 'us-east-1'
+        br = boto3.client('bedrock-runtime', region_name=region)
+        res = br.converse(
+            modelId='us.amazon.nova-pro-v1:0',
+            messages=[{
+                'role': 'user',
+                'content': [
+                    {'document': {'format': 'pdf', 'name': 'uploaded_statement', 'source': {'bytes': content_bytes}}},
+                    {'text': 'Read ALL pages of this PDF from start to finish and transcribe all headings, text, tables, dates, figures, and technical details verbatim.'}
+                ]
+            }],
+            inferenceConfig={'maxTokens': 2500, 'temperature': 0.0}
+        )
+        return res['output']['message']['content'][0]['text'].strip()
+    except Exception:
+        return ''
+
+
 def _extract_pdf_stdlib(content_bytes: bytes) -> str:
     """Pure-stdlib PDF text extractor supporting uncompressed & FlateDecode streams."""
     chunks = []
@@ -93,21 +125,23 @@ def _extract_pdf_stdlib(content_bytes: bytes) -> str:
             if cleaned and any(ch.isalnum() for ch in cleaned):
                 chunks.append(cleaned)
     if not chunks:
-        # Fallback for uncompressed literal PDF strings outside stream blocks
         raw = content_bytes.decode('latin-1', errors='ignore')
         for m in re.findall(r'\(([^()]{2,200})\)', raw):
             cleaned = m.replace(r'\(', '(').replace(r'\)', ')').strip()
             if cleaned and sum(ch.isalnum() or ch.isspace() for ch in cleaned) >= len(cleaned) * 0.65:
                 if any(ch.isalpha() for ch in cleaned):
                     chunks.append(cleaned)
-    return ' '.join(chunks[:600]).strip()
+    return ' '.join(chunks[:800]).strip()
 
 
 def extract_document(filename: str, content_bytes: bytes) -> dict:
-    """Extracts text and metadata from uploaded documents (PDF, DOCX, XLSX, CSV, JSON, XML, HTML, TXT, MD)."""
+    """Extracts text and accurate metadata from uploaded documents (PDF, DOCX, XLSX, CSV, JSON, XML, HTML, TXT, MD)."""
     ext = Path(filename or '').suffix.lower()
     text = ''
     detected_type = 'text/plain'
+    pages_count = 1
+    extraction_status = 'SUCCESS'
+    extraction_detail = 'Content extraction successful'
 
     try:
         if ext in ('.txt', '.md', '.markdown', '.sql', '.html', '.htm', '.yaml', '.yml', '.log'):
@@ -147,15 +181,49 @@ def extract_document(filename: str, content_bytes: bytes) -> dict:
 
         elif ext == '.pdf':
             detected_type = 'application/pdf'
+            pages_count = _count_pdf_pages_stdlib(content_bytes)
+            # 1. Try pdfplumber first (most accurate for multi-page technical & financial PDFs)
             try:
-                import pypdf
-                reader = pypdf.PdfReader(io.BytesIO(content_bytes))
-                pages = [page.extract_text() or '' for page in reader.pages]
-                text = '\n\n'.join(pages).strip()
+                import pdfplumber
+                with pdfplumber.open(io.BytesIO(content_bytes)) as pdf:
+                    pages_count = len(pdf.pages)
+                    page_texts = []
+                    for i, page in enumerate(pdf.pages):
+                        pt = (page.extract_text() or '').strip()
+                        if pt:
+                            page_texts.append(f"[Page {i + 1} of {pages_count}]\n{pt}")
+                    text = '\n\n'.join(page_texts).strip()
             except Exception:
                 text = ''
-            if not text:
-                text = _extract_pdf_stdlib(content_bytes)
+
+            # 2. Try pypdf if pdfplumber unavailable/empty
+            if len(text.strip()) < 80:
+                try:
+                    import pypdf
+                    reader = pypdf.PdfReader(io.BytesIO(content_bytes))
+                    pages_count = len(reader.pages)
+                    pages = [f"[Page {i + 1} of {pages_count}]\n{page.extract_text() or ''}" for i, page in enumerate(reader.pages)]
+                    cand = '\n\n'.join(pages).strip()
+                    if len(cand) > len(text):
+                        text = cand
+                except Exception:
+                    pass
+
+            # 3. Try Bedrock native PDF reader for scanned/complex PDFs
+            if len(text.strip()) < 80:
+                br_txt = _extract_pdf_with_bedrock(content_bytes)
+                if len(br_txt.strip()) > len(text.strip()):
+                    text = br_txt
+
+            # 4. Stdlib fallback
+            if len(text.strip()) < 60:
+                std_txt = _extract_pdf_stdlib(content_bytes)
+                if len(std_txt.strip()) > len(text.strip()):
+                    text = std_txt
+
+            if not text.strip():
+                extraction_status = 'FAILED'
+                extraction_detail = 'No readable text stream could be extracted from this PDF.'
 
         elif ext in ('.docx', '.doc'):
             detected_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -171,6 +239,7 @@ def extract_document(filename: str, content_bytes: bytes) -> dict:
             try:
                 import openpyxl
                 wb = openpyxl.load_workbook(io.BytesIO(content_bytes), data_only=True)
+                pages_count = len(wb.sheetnames)
                 lines = []
                 for sheet in wb.sheetnames:
                     lines.append(f'Sheet: {sheet}')
@@ -187,15 +256,23 @@ def extract_document(filename: str, content_bytes: bytes) -> dict:
             text = content_bytes.decode('utf-8', errors='replace')[:15000]
 
     except Exception as e:
-        text = f'[Extraction note for {filename}: {e}]'
+        extraction_status = 'ERROR'
+        extraction_detail = f'Extraction error: {e}'
+        text = ''
 
-    cleaned_text = re.sub(r'[ \t]+', ' ', text).strip()
+    cleaned_text = re.sub(r'[ \t]+', ' ', text).replace('(cid:127)', '•').strip()
     words = len(cleaned_text.split()) if cleaned_text else 0
-    preview = cleaned_text[:600].strip() + ('...' if len(cleaned_text) > 600 else '')
+    read_mins = max(1, math.ceil(words / 200)) if words > 0 else 1
+    reading_time_str = f"{read_mins} min read ({words:,} words)" if words >= 100 else f"~{max(15, words)} sec ({words} words)"
+    preview = cleaned_text[:1200].strip() + ('...' if len(cleaned_text) > 1200 else '')
 
     return {
         'text': cleaned_text[:45000],
         'words': words,
+        'pages': pages_count,
+        'reading_time': reading_time_str,
+        'extraction_status': extraction_status,
+        'extraction_detail': extraction_detail,
         'detected_type': detected_type,
         'preview': preview,
     }

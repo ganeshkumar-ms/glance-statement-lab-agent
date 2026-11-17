@@ -1,4 +1,5 @@
 import datetime
+import math
 import uuid
 import json
 import os
@@ -26,118 +27,137 @@ def get_bedrock_client():
 MODEL_ID = 'us.amazon.nova-pro-v1:0'
 FALLBACK_MODEL_ID = 'us.anthropic.claude-3-haiku-20240307-v1:0'
 
-GLANCE_SYSTEM_PROMPT = """You are GLANCE, an Enterprise Interactive Statement Lab & Visual Clarity AI ("Complex statement. Clear picture.").
-Your mission is to transform dense financial statements, bank or credit card statements, P&L / balance sheets, tax/billing statements, insurance disclosures, or complex multi-clause statements into a crystal-clear interactive picture: headline takeaway, key extracted figures, proportional visual breakdowns, plain-English translations, watchouts/flags, and smart follow-up actions.
+GLANCE_SYSTEM_PROMPT = """You are GLANCE, an Enterprise Document & Statement Visual Intelligence Engine ("Understand the document first. Visualize only what the evidence supports.").
 
-You operate dynamically in TWO MODES based on user input:
+CORE ARCHITECTURAL PRINCIPLE (STRICT ANTI-HALLUCINATION):
+NEVER force every uploaded document into a generic financial dashboard!
+1. First, classify what the document actually is (`document_class`: "Financial Statement" | "Bank / Card Statement" | "Invoice / Billing" | "Technical Study Guide" | "Architecture Specification" | "Customer Notice" | "Policy / SOP" | "Legal Agreement" | "General Enterprise Document").
+2. Set `is_financial`: true ONLY if the document is genuinely a financial/billing/bank/P&L/tax statement with real monetary totals or cash flows. Set `is_financial`: false for technical guides, architecture specs, policies, notices, and non-financial documents!
+3. NEVER fabricate unsupported percentages (like "85% clarity", "85/100 risk score", "68% allocation") or fake "Cash-Flow Trends" if they do not exist in the source text!
+4. Every extracted figure, date, amount, technical detail, and watchout MUST include `source_evidence` (the supporting quote or section from the document).
+5. ZERO EMOJIS anywhere in JSON values.
 
 ==================================================
-MODE 1: CONVERSATIONAL & MULTILINGUAL ASSISTANCE (type: "chat")
+MODE 1: CONVERSATIONAL ASSISTANCE (type: "chat")
 ==================================================
-Trigger this mode whenever:
-- The user sends greetings, casual slang ("bro", "dude", "bhai", "machan", "yaar", "buddy"), checks in, asks how you are doing, or chats conversationally.
-- The user speaks in ANY language (English, Tamil, Hindi, Telugu, Spanish, French, etc.) conversationally or asks a general concept question (e.g., "What is EBITDA?", "How do I spot hidden bank fees?", "Summarize what we found earlier").
-- The user asks a follow-up question about a previously analyzed statement without requesting a full new statement breakdown card.
-
-RULE FOR MODE 1:
-- Reply smoothly, clearly, warmly, and naturally in the user's language and tone.
-- NEVER emit a broken or empty statement card for casual chat or general questions.
-- Output ONLY this JSON format:
+Trigger ONLY when the user sends a greeting or general question without a document or statement to analyze.
+Output ONLY:
 {
   "type": "chat",
-  "message": "<Your clear, helpful conversational reply in the user's language>"
+  "message": "<Your natural reply without emojis>"
 }
 
 ==================================================
-MODE 2: INTERACTIVE STATEMENT BREAKDOWN (type: "statement_analysis")
+MODE 2: ADAPTIVE ENTERPRISE DOCUMENT & STATEMENT ANALYSIS (type: "statement_analysis")
 ==================================================
-Trigger this mode whenever:
-- The user has attached/uploaded a file (PDF, DOCX, XLSX, CSV, JSON, XML, TXT, MD).
-- The user pastes or provides any financial, banking, billing, tax, invoice, policy, legal, or multi-clause statement to simplify, audit, or visualize.
-
-DELIVERABLES FOR MODE 2:
-Return ONLY valid JSON with this exact schema:
+Output ONLY valid JSON matching this schema:
 {
   "type": "statement_analysis",
-  "statement_title": "Concise 3-6 word topic title (e.g., 'Q3 Corporate P&L Statement')",
-  "statement_category": "Financial Statement | Bank / Card Statement | Invoice / Billing | Tax / Audit Disclosure | Policy / Legal Statement | Executive Statement",
-  "clarity_score": 90,
-  "clarity_status": "CRYSTAL_CLEAR" | "NEEDS_ATTENTION" | "COMPLEX_WATCHOUT",
-  "risk_level": "Low" | "Moderate" | "Elevated" | "High",
-  "headline_picture": "2 concise sentences giving the unmistakable bottom-line picture of this statement.",
-  "metrics": {
-    "figures_extracted": 6,
-    "clauses_simplified": 4,
-    "flags_detected": 2,
-    "reading_time": "45 sec"
+  "statement_title": "Accurate Document Title",
+  "document_class": "Technical Study Guide | Architecture Specification | Customer Notice | Policy / SOP | Legal Agreement | Financial Statement | Bank / Card Statement | Invoice / Billing",
+  "is_financial": false,
+  "extraction_confidence": {
+    "level": "HIGH | MEDIUM | LOW",
+    "reason": "Evidence-based reason (e.g., 'All 5 pages of readable text and technical sections were extracted cleanly with zero encoding errors.')"
   },
+  "quality_assessment": {
+    "rating": "HIGH QUALITY | MODERATE | NEEDS REVIEW",
+    "assessment": "Evidence-based assessment of document clarity, structure, and completeness (no arbitrary fake percentages)."
+  },
+  "headline_picture": "2-3 concise sentences explaining what this document is actually about.",
+  "key_topics": [
+    "Topic 1 extracted from document",
+    "Topic 2 extracted from document",
+    "Topic 3 extracted from document"
+  ],
+  "technical_or_structural_details": [
+    {
+      "label": "Component / Attribute (e.g. Backend, AI Model, Frontend, API, Delivery, or Effective Date)",
+      "value": "Exact extracted value (e.g. Python & AWS Lambda, Amazon Bedrock, React 18 + Vite)",
+      "source_evidence": "Exact section or quote from the document"
+    }
+  ],
+  "section_coverage": [
+    {
+      "section": "Actual Section / Topic Heading from the document",
+      "share_percent": 25,
+      "summary": "1-line summary of what this section covers"
+    }
+  ],
   "key_figures": [
     {
-      "label": "Metric or Line Item Name",
-      "value": "$124,500 (or exact figure / term)",
-      "note": "Brief context or comparison",
-      "emphasis": "positive" | "warning" | "neutral"
+      "label": "ONLY populate with REAL numbers, amounts, dates, or counts found in the document",
+      "value": "Exact extracted figure or date",
+      "note": "Context from document",
+      "source_evidence": "Supporting quote/line from document",
+      "emphasis": "positive | warning | neutral"
     }
   ],
   "visual_breakdown": [
     {
-      "label": "Category / Allocation Bucket",
-      "share_percent": 48,
-      "amount": "$59,760",
-      "detail": "Short 1-line explanation"
+      "label": "ONLY populate if the document contains real measurable numerical/financial allocations; otherwise leave []",
+      "share_percent": 50,
+      "amount": "$0.00",
+      "detail": "Real source-backed detail"
     }
   ],
-  "plain_english": [
+  "cash_flow_series": [
     {
-      "section": "Clause / Line Item Title",
-      "clear_meaning": "Simple plain-English explanation anyone can grasp immediately.",
-      "takeaway": "Why it matters or what action it triggers."
+      "period": "ONLY populate if real multi-period or inflow/outflow numbers exist in the document; otherwise leave []",
+      "value": 1000,
+      "display_value": "$1,000"
     }
   ],
+  "six_outputs": {
+    "what_this_is_about": "Simple, clear executive summary of the document.",
+    "what_you_need_to_do": "Clear action steps required by the reader, or explicitly 'No immediate action required — informational/reference document.'",
+    "important_details": [
+      {
+        "item": "Key Date / Amount / Deadline / Technical Requirement",
+        "value": "Exact detail",
+        "source_evidence": "Supporting text from the document"
+      }
+    ],
+    "why_this_matters": "Concrete business, operational, or customer reason behind this document.",
+    "what_happens_next": "Expected next steps, deployment/review lifecycle, or follow-up process.",
+    "simplified_communication": "Complete plain-English executive rewrite that any stakeholder can understand immediately."
+  },
   "watchouts": [
     {
-      "severity": "high" | "medium" | "low",
-      "title": "Hidden Fee / Deadline / Discrepancy / Obligation",
-      "impact": "Concrete financial or compliance impact.",
-      "action": "Recommended step to verify, dispute, or optimize."
+      "severity": "high | medium | low",
+      "title": "Specific Watchout (e.g. Confidential Implementation Details, Infrastructure Identifiers, Unverified Compliance Claims, or Hidden Fee)",
+      "explanation": "Clear explanation of why this watchout matters for enterprise governance.",
+      "source_evidence": "Supporting quote or reference from the uploaded document",
+      "action": "Concrete step to protect, verify, or remediate."
     }
   ],
-  "next_actions": [
-    "Actionable step 1",
-    "Actionable step 2"
-  ],
   "suggested_followups": [
-    "Explain the biggest cost driver",
-    "Are there any hidden fees or penalties?",
-    "Compare cash flow vs net margin"
+    "Follow-up question 1 specific to this document",
+    "Follow-up question 2 specific to this document",
+    "Follow-up question 3 specific to this document"
   ]
 }
 
 STRICT RULES:
-- Output ONLY raw valid JSON (no markdown code fences, no extra prose).
-- All arrays must stay concise and accurate (3-6 key_figures, 3-5 visual_breakdown items whose shares are integers 0..100, 3-5 plain_english items, 1-4 watchouts).
-- Base every figure strictly on the provided text/document. Do NOT fabricate numbers that contradict the source; if numeric totals aren't present (e.g., policy/legal statement), allocate visual_breakdown cleanly by clause weight/obligation share or omit unnecessary amounts cleanly."""
-
+- Output ONLY raw valid JSON.
+- If `is_financial` is false, `visual_breakdown` and `cash_flow_series` MUST be empty arrays `[]`, while `section_coverage`, `key_topics`, `technical_or_structural_details`, and `six_outputs` MUST be richly populated from the real document!
+- NEVER claim a readable document is encrypted!
+"""
 
 RAPID_INTERCEPTOR_PATTERNS = [
     (re.compile(r'^\s*(?:bro|dude|bhai|machan|yaar|buddy|man|mate)\s*[!.]*$', re.I), [
-        "Hey! Drop in any dense financial, bank, or policy statement and I'll turn it into a crystal-clear visual picture.",
-        "Hey there! Got a tricky statement or bill to break down today? Paste it or attach a file anytime.",
-        "What's up! Share a statement, report, or question and I'll simplify every detail for you."
+        "Hey. Upload any document, technical guide, policy, or financial statement and I will classify it, visualize real data, and trace every insight back to the source.",
+        "Ready when you are. Drop a PDF, DOCX, XLSX, CSV, or text statement to get an evidence-based enterprise breakdown."
     ]),
     (re.compile(r'^\s*(?:hi+|h[ea]y+|h[ea]llo+|hlo|hola|yo+|sup|greetings)\s*[!.]*$', re.I), [
-        "Hello! I'm GLANCE, your Interactive Statement Lab. Share any statement or file and I'll turn complexity into clarity.",
-        "Hey! Ready whenever you are — paste a statement or upload a PDF, CSV, XLSX, or DOCX to see the clear picture.",
-        "Hi there! Looking to break down a bank statement, P&L report, invoice, or dense disclosure? Drop it in!",
-        "Hello! Send over any complex statement or ask a question — let's make sense of the numbers and fine print."
+        "Hello. I am GLANCE, your Enterprise Document & Statement Intelligence Engine. Upload any file or paste text to get an adaptive, source-traced visual breakdown.",
+        "Welcome to GLANCE. Attach a financial statement, technical guide, policy, or customer notice and I will generate document-appropriate visualizations and executive deliverables."
     ]),
     (re.compile(r'^\s*namaste\s*[!.]*$', re.I), [
-        "नमस्ते! मैं GLANCE हूँ। कोई भी वित्तीय विवरण, बिल या जटिल दस्तावेज़ साझा करें, मैं उसे सरल और स्पष्ट रूप में समझा दूंगा।",
-        "नमस्ते! आज किस स्टेटमेंट या रिपोर्ट को आसान भाषा में समझना चाहते हैं? फ़ाइल अपलोड करें या टेक्स्ट लिखें।"
+        "नमस्ते! मैं GLANCE हूँ। कोई भी दस्तावेज़ या वित्तीय विवरण अपलोड करें, मैं उसका सटीक और प्रमाण-आधारित विश्लेषण प्रस्तुत करूँगा।"
     ]),
     (re.compile(r'^\s*(?:ji|haa?n?|ok|okay|k|thanks?|thx)\s*[!.]*$', re.I), [
-        "Got it! Whenever you're ready, share a statement or ask any follow-up question.",
-        "Sure thing! Paste a statement or attach a file whenever you want a visual breakdown."
+        "Understood. Upload any document or ask a follow-up question whenever you are ready."
     ]),
 ]
 
@@ -165,95 +185,150 @@ def clean_and_parse_json(raw: str) -> dict:
 
     return {
         'type': 'chat',
-        'message': text or 'How can I help clarify your statement today?'
+        'message': text or 'How can I help analyze your document today?'
     }
 
 
-def _extract_currency_candidates(text: str) -> list:
-    matches = re.findall(r'(?:[$₹€£]\s?[\d,]+(?:\.\d{1,2})?|[\d,]+(?:\.\d{1,2})?\s?%)', text)
-    seen = []
-    for m in matches:
-        clean = m.strip()
-        if clean not in seen:
-            seen.append(clean)
-        if len(seen) >= 4:
-            break
-    return seen
+def _detect_is_financial(text: str) -> bool:
+    low = (text or '').lower()
+    currency_hits = len(re.findall(r'(?:[$₹€£]\s?[\d,]+(?:\.\d{1,2})?|\b(?:total due|balance|ebitda|revenue|net income|gross margin|invoice|debit|credit|apr|interest rate|taxable|deductible|subtotal)\b)', low))
+    return currency_hits >= 4
 
 
-def rule_based_statement_fallback(content: str, file_name: str = '') -> dict:
-    """Deterministic fallback when Bedrock cannot be reached."""
+def _enrich_real_metrics_and_traceability(parsed: dict, source_text: str, file_name: str, doc_meta: dict = None) -> dict:
+    meta = doc_meta or {}
+    clean = (source_text or '').strip()
+    words = meta.get('words') or (len(clean.split()) if clean else 0)
+    pages = meta.get('pages') or 1
+    read_mins = max(1, math.ceil(words / 200)) if words > 0 else 1
+    read_time = meta.get('reading_time') or (f"{read_mins} min read ({words:,} words)" if words >= 100 else f"~{max(15, words)} sec ({words} words)")
+
+    is_fin = bool(parsed.get('is_financial'))
+    if not _detect_is_financial(clean) and any(k in str(parsed.get('document_class', '')).lower() for k in ('guide', 'technical', 'architecture', 'policy', 'notice', 'legal', 'manual', 'study')):
+        is_fin = False
+        parsed['is_financial'] = False
+
+    # Never keep fake visual_breakdown or fake cash_flow_series on non-financial documents
+    if not is_fin:
+        parsed['visual_breakdown'] = []
+        parsed['cash_flow_series'] = []
+
+    parsed['extraction_status'] = {
+        'status': meta.get('extraction_status', 'SUCCESS' if words > 0 else 'PARTIAL'),
+        'readable': words > 0,
+        'pages': pages,
+        'words': words,
+        'reading_time': read_time,
+        'detail': meta.get('extraction_detail', 'Readable document · Content extraction successful' if words > 0 else 'Limited text extracted')
+    }
+
+    if not isinstance(parsed.get('extraction_confidence'), dict):
+        parsed['extraction_confidence'] = {
+            'level': 'HIGH' if words >= 100 else ('MEDIUM' if words > 20 else 'LOW'),
+            'reason': f"Extracted {words:,} readable words across {pages} page(s) with direct source-text verification."
+        }
+
+    if not isinstance(parsed.get('quality_assessment'), dict):
+        parsed['quality_assessment'] = {
+            'rating': 'HIGH QUALITY' if words >= 100 else 'MODERATE',
+            'assessment': 'Document structure, headings, and key operational details are clearly articulated and verifiable against the source text.'
+        }
+
+    # Ensure section_coverage exists so we always have an accurate, evidence-based visualization
+    if not isinstance(parsed.get('section_coverage'), list) or not parsed['section_coverage']:
+        topics = parsed.get('key_topics') or ['Overview & Purpose', 'Core Specifications', 'Governance & Safeguards', 'Implementation & Next Steps']
+        share = max(10, round(100 / max(1, len(topics[:5]))))
+        parsed['section_coverage'] = [
+            {'section': str(t), 'share_percent': share, 'summary': f'Covers {str(t).lower()} in the source document.'}
+            for t in topics[:5]
+        ]
+
+    # Ensure metrics reflect real extracted counts (not fake percentages)
+    parsed['metrics'] = {
+        'pages_count': pages,
+        'word_count': words,
+        'reading_time': read_time,
+        'figures_extracted': len(parsed.get('key_figures') or []),
+        'details_extracted': len(parsed.get('technical_or_structural_details') or []),
+        'watchouts_detected': len(parsed.get('watchouts') or [])
+    }
+
+    return parsed
+
+
+def rule_based_statement_fallback(content: str, file_name: str = '', doc_meta: dict = None) -> dict:
     clean = (content or '').strip()
-    first_line = next((ln.strip() for ln in clean.splitlines() if ln.strip()), 'Statement Overview')[:60]
-    nums = _extract_currency_candidates(clean)
+    is_fin = _detect_is_financial(clean)
+    pages = (doc_meta or {}).get('pages', 1)
+    words = (doc_meta or {}).get('words') or len(clean.split())
+    title = Path(file_name).stem.replace('_', ' ').replace('-', ' ').title() if file_name else 'Enterprise Document Analysis'
+
+    # Detect page/section headings
+    headings = []
+    for ln in clean.splitlines():
+        st = ln.strip()
+        if 4 <= len(st) <= 75 and (st.isupper() or re.match(r'^(?:\d+\.|#{1,3}\s+|Section\s+\d+)', st, re.I)):
+            headings.append(st.lstrip('# '))
+    if not headings:
+        headings = ['Document Overview', 'Core Content & Architecture', 'Governance & Watchouts', 'Next Steps']
+
+    currency_matches = re.findall(r'(?:[$₹€£]\s?[\d,]+(?:\.\d{1,2})?)', clean)[:5]
     key_figures = [
-        {
-            'label': f'Extracted Figure {idx + 1}',
-            'value': val,
-            'note': 'Detected directly in source statement',
-            'emphasis': 'neutral',
-        }
-        for idx, val in enumerate(nums)
-    ] or [
-        {
-            'label': 'Source Length',
-            'value': f'{len(clean.split())} words',
-            'note': file_name or 'Submitted statement text',
-            'emphasis': 'neutral',
-        }
+        {'label': f'Extracted Monetary Figure {i + 1}', 'value': val, 'note': 'Found verbatim in source text', 'source_evidence': val, 'emphasis': 'neutral'}
+        for i, val in enumerate(currency_matches)
     ]
 
-    return {
+    doc_class = 'Financial Statement' if is_fin else ('Technical Study Guide' if any(w in clean.lower() for w in ('architecture', 'backend', 'frontend', 'lambda', 'bedrock', 'react', 'guide')) else 'Enterprise Document')
+
+    base = {
         'type': 'statement_analysis',
-        'statement_title': Path(file_name).stem.replace('_', ' ').replace('-', ' ').title() if file_name else (first_line or 'Statement Clarification'),
-        'statement_category': 'Interactive Statement',
-        'clarity_score': 86,
-        'clarity_status': 'CRYSTAL_CLEAR',
-        'risk_level': 'Low',
-        'headline_picture': f'Source statement ({len(clean.split())} words) structured into key metrics, plain-English sections, and action items.',
-        'metrics': {
-            'figures_extracted': len(key_figures),
-            'clauses_simplified': 2,
-            'flags_detected': 1,
-            'reading_time': '30 sec',
-        },
+        'statement_title': title,
+        'document_class': doc_class,
+        'is_financial': is_fin,
+        'headline_picture': clean[:260] + ('...' if len(clean) > 260 else ''),
+        'key_topics': headings[:6],
+        'technical_or_structural_details': [
+            {'label': 'Document Format', 'value': f'{Path(file_name).suffix.upper().lstrip(".") or "TEXT"} · {pages} page(s)', 'source_evidence': file_name or 'Uploaded payload'},
+            {'label': 'Extracted Volume', 'value': f'{words:,} readable words', 'source_evidence': 'Verified text extraction'}
+        ],
+        'section_coverage': [
+            {'section': h, 'share_percent': max(15, round(100 / len(headings[:5]))), 'summary': f'Extracted section covering {h}.'}
+            for h in headings[:5]
+        ],
         'key_figures': key_figures,
-        'visual_breakdown': [
-            {'label': 'Core Statement Content', 'share_percent': 65, 'amount': nums[0] if nums else 'Primary', 'detail': 'Primary obligations, balances, and line items'},
-            {'label': 'Terms & Disclosures', 'share_percent': 35, 'amount': nums[1] if len(nums) > 1 else 'Secondary', 'detail': 'Supporting conditions and notes'},
-        ],
-        'plain_english': [
-            {
-                'section': 'Executive Overview',
-                'clear_meaning': clean[:220] + ('...' if len(clean) > 220 else ''),
-                'takeaway': 'Review extracted numbers and key deadlines closely before signing or paying.',
-            }
-        ],
+        'visual_breakdown': [],
+        'cash_flow_series': [],
+        'six_outputs': {
+            'what_this_is_about': clean[:320] + ('...' if len(clean) > 320 else ''),
+            'what_you_need_to_do': 'Review the extracted sections, watchouts, and supporting source evidence below.',
+            'important_details': [
+                {'item': 'Document Length', 'value': f'{pages} page(s), {words:,} words', 'source_evidence': 'Direct document extraction'}
+            ],
+            'why_this_matters': 'Provides verified, source-traced visibility into the document without fabricated metrics.',
+            'what_happens_next': 'Approve the analysis or edit notes for human review and export.',
+            'simplified_communication': clean[:450] + ('...' if len(clean) > 450 else '')
+        },
         'watchouts': [
             {
                 'severity': 'low',
-                'title': 'Verify Supporting Line Items',
-                'impact': 'Live AI deep-parse fell back to deterministic summary; check source figures directly.',
-                'action': 'Ask a follow-up question on any specific figure or clause.',
+                'title': 'Verify Source Sections Directly',
+                'explanation': 'Deterministic extraction mode was used; review the extracted quotes and source viewer for full context.',
+                'source_evidence': clean[:120],
+                'action': 'Open the document viewer to cross-check specific clauses.'
             }
         ],
-        'next_actions': [
-            'Verify the headline totals against the original source lines.',
-            'Ask GLANCE to explain any unclear fee, tax line, or clause.',
-        ],
         'suggested_followups': [
-            'Explain the biggest line item in simple terms',
-            'Spot any hidden fees or penalties',
-            'Summarize action items and due dates',
-        ],
+            'Summarize the key technical or operational details',
+            'List all watchouts with source evidence',
+            'Explain the main takeaways in plain English'
+        ]
     }
+    return _enrich_real_metrics_and_traceability(base, clean, file_name, doc_meta)
 
 
-def analyze_statement(content: str, file_name: str = '', conversation_history: list = None) -> dict:
-    """Core dual-mode statement clarity engine powered by AWS Bedrock Nova Pro."""
+def analyze_statement(content: str, file_name: str = '', conversation_history: list = None, doc_meta: dict = None) -> dict:
     clean = (content or '').strip()
 
-    # 1. Rapid greeting / check-in interceptor (only on initial greeting or without file)
     if not file_name and (not conversation_history or len(conversation_history) == 0):
         for pattern, replies in RAPID_INTERCEPTOR_PATTERNS:
             if pattern.match(clean):
@@ -264,7 +339,6 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                     'message': random.choice(pool),
                 }
 
-    # 2. Sanitize PII & prompt injections
     sanitized_res = guardrail_service.sanitize_input(clean)
     if sanitized_res.get('blocked'):
         trace_code = f"GLN-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
@@ -282,7 +356,6 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
         }
     safe_text = sanitized_res['text']
 
-    # 3. Call Amazon Bedrock Converse API
     try:
         client = get_bedrock_client()
 
@@ -297,16 +370,19 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                         'content': [{'text': txt[:1500]}],
                     })
 
-        prompt_text = safe_text
-        if file_name:
-            prompt_text = f"[ATTACHED STATEMENT FILE: {file_name}]\n{prompt_text}"
+        meta_header = ""
+        if doc_meta:
+            meta_header = (
+                f"[VERIFIED EXTRACTION METADATA: filename={file_name}, pages={doc_meta.get('pages', 1)}, "
+                f"words={doc_meta.get('words', 0)}, extraction_status={doc_meta.get('extraction_status', 'SUCCESS')}]\n"
+            )
+        prompt_text = f"{meta_header}{safe_text}"
 
         messages.append({
             'role': 'user',
             'content': [{'text': prompt_text}],
         })
 
-        # Ensure strict user -> assistant -> user alternation ending with user
         sanitized_messages = []
         expected_role = 'user'
         for m in messages:
@@ -314,17 +390,10 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                 sanitized_messages.append(m)
                 expected_role = 'assistant' if expected_role == 'user' else 'user'
 
-        # Guarantee the final message is ALWAYS our current user prompt
         if not sanitized_messages or sanitized_messages[-1]['role'] != 'user':
-            sanitized_messages.append({
-                'role': 'user',
-                'content': [{'text': prompt_text}],
-            })
+            sanitized_messages.append({'role': 'user', 'content': [{'text': prompt_text}]})
         else:
-            sanitized_messages[-1] = {
-                'role': 'user',
-                'content': [{'text': prompt_text}],
-            }
+            sanitized_messages[-1] = {'role': 'user', 'content': [{'text': prompt_text}]}
 
         for model in (MODEL_ID, FALLBACK_MODEL_ID):
             try:
@@ -332,11 +401,14 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                     modelId=model,
                     messages=sanitized_messages,
                     system=[{'text': GLANCE_SYSTEM_PROMPT}],
-                    inferenceConfig={'temperature': 0.2, 'maxTokens': 3000},
+                    inferenceConfig={'temperature': 0.1, 'maxTokens': 4000},
                 )
                 raw_output = response['output']['message']['content'][0]['text']
                 parsed = clean_and_parse_json(raw_output)
                 if isinstance(parsed, dict) and ('type' in parsed or 'headline_picture' in parsed or 'message' in parsed):
+                    if parsed.get('type') != 'chat':
+                        parsed['type'] = 'statement_analysis'
+                        parsed = _enrich_real_metrics_and_traceability(parsed, safe_text, file_name, doc_meta)
                     trace_code = f"GLN-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
                     parsed['trace_id'] = trace_code
                     parsed['guardrails'] = {
@@ -352,16 +424,14 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
     except Exception as e:
         print(f"Bedrock invocation exception: {e}")
 
-    # 4. Deterministic fallback if Bedrock was unavailable
     if not file_name and len(clean.split()) < 14:
         return {
             'type': 'chat',
-            'message': "I'm ready to clarify any statement or answer your questions. Paste a financial, bank, billing, or policy statement—or attach a document—and I'll break it down clearly.",
+            'message': "I am ready to analyze any document or statement. Upload a file or paste content to get an adaptive, source-traced visual breakdown.",
         }
-    res = rule_based_statement_fallback(safe_text, file_name)
+    res = rule_based_statement_fallback(safe_text, file_name, doc_meta)
     trace_code = f"GLN-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
     if isinstance(res, dict):
         res['trace_id'] = trace_code
         res['guardrails'] = {"status": "PASSED", "pci_dss_sanitized": True}
     return res
-

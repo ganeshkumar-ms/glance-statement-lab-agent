@@ -240,6 +240,10 @@ def lambda_handler(event, context):
                     'url': f"/api/document/{quote(storage_id)}",
                     'view_url': f"/api/document/{quote(storage_id)}/view",
                     'words': extracted.get('words', 0),
+                    'pages': extracted.get('pages', 1),
+                    'reading_time': extracted.get('reading_time', '1 min read'),
+                    'extraction_status': extracted.get('extraction_status', 'SUCCESS'),
+                    'extraction_detail': extracted.get('extraction_detail', 'Content extraction successful'),
                     'preview': extracted.get('preview', ''),
                 }
         elif 'application/json' in ct:
@@ -268,6 +272,7 @@ def lambda_handler(event, context):
             content=clean_content,
             file_name=file_name,
             conversation_history=history,
+            doc_meta=doc_meta,
         )
         if doc_meta:
             result['document'] = doc_meta

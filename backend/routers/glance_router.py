@@ -118,6 +118,10 @@ async def analyze(
             'url': f"/api/document/{quote(storage_id)}",
             'view_url': f"/api/document/{quote(storage_id)}/view",
             'words': extracted.get('words', 0),
+            'pages': extracted.get('pages', 1),
+            'reading_time': extracted.get('reading_time', '1 min read'),
+            'extraction_status': extracted.get('extraction_status', 'SUCCESS'),
+            'extraction_detail': extracted.get('extraction_detail', 'Content extraction successful'),
             'preview': extracted.get('preview', ''),
         }
 
@@ -125,13 +129,14 @@ async def analyze(
     if not clean_content:
         return {
             'type': 'chat',
-            'message': "Hello! I'm GLANCE, your Interactive Statement Lab. Share any dense financial, banking, billing, or policy statement—or attach a document—and I'll break it into a crystal-clear picture.",
+            'message': "Hello. I am GLANCE, your Enterprise Document & Statement Intelligence Lab. Upload any document or statement to see its adaptive analysis, evidence-based visualizations, and source-traced takeaways.",
         }
 
     result = glance_service.analyze_statement(
         content=clean_content,
         file_name=file_name,
         conversation_history=history,
+        doc_meta=doc_meta,
     )
 
     if doc_meta:
