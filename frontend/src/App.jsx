@@ -28,7 +28,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const STORAGE_KEY = 'glance_sessions_v1'
+const STORAGE_KEY = 'glance_sessions_v2'
 
 const GENERIC_GREETINGS = new Set([
   'hi', 'hello', 'hey', 'ji', 'hlo', 'yo', 'sup', 'namaste', 'hola', 'greetings',

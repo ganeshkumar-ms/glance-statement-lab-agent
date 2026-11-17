@@ -401,7 +401,7 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                     modelId=model,
                     messages=sanitized_messages,
                     system=[{'text': GLANCE_SYSTEM_PROMPT}],
-                    inferenceConfig={'temperature': 0.1, 'maxTokens': 4000},
+                    inferenceConfig={'temperature': 0.1, 'maxTokens': 1500},
                 )
                 raw_output = response['output']['message']['content'][0]['text']
                 parsed = clean_and_parse_json(raw_output)
