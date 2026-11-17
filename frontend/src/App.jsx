@@ -504,31 +504,33 @@ export default function App() {
               </div>
             )}
 
-            <div className="recentHead">
-              <span>RECENT CONVERSATIONS</span>
-            </div>
+            <div className="recentGroup">
+              <div className="recentHead">
+                <span>RECENT CONVERSATIONS</span>
+              </div>
 
-            <div className="cards">
-              {sessions.length === 0 ? (
-                <div className="card emptyCard">
-                  <small>READY TO CLARIFY</small>
-                  <b>No previous conversations yet</b>
-                  <p>Paste any statement or attach a file above to see the clear picture.</p>
-                </div>
-              ) : (
-                sessions.slice(0, 3).map(session => (
-                  <button
-                    key={session.id}
-                    className="card"
-                    type="button"
-                    onClick={() => handleLoadSession(session.id)}
-                  >
-                    <small>{formatTimestamp(session.updatedAt || session.createdAt)}</small>
-                    <b>{session.title || 'New conversation'}</b>
-                    <p>{getPreview(session.messages)}</p>
-                  </button>
-                ))
-              )}
+              <div className="cards">
+                {sessions.length === 0 ? (
+                  <div className="card emptyCard">
+                    <small>READY TO CLARIFY</small>
+                    <b>No previous conversations yet</b>
+                    <p>Paste any statement or attach a file above to see the clear picture.</p>
+                  </div>
+                ) : (
+                  sessions.slice(0, 3).map(session => (
+                    <button
+                      key={session.id}
+                      className="card"
+                      type="button"
+                      onClick={() => handleLoadSession(session.id)}
+                    >
+                      <small>{formatTimestamp(session.updatedAt || session.createdAt)}</small>
+                      <b>{session.title || 'New conversation'}</b>
+                      <p>{getPreview(session.messages)}</p>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
           </main>
         </section>
@@ -675,6 +677,23 @@ export default function App() {
               </div>
 
               <div className="composerArea">
+                {selectedFile && (
+                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%', margin: '0 auto 10px' }}>
+                    <div className="attachedRow composerAttached">
+                      <span className="attachChip">
+                        <span className="attachName">{selectedFile.name}</span>
+                        <button
+                          type="button"
+                          className="attachRemove"
+                          aria-label={`Remove ${selectedFile.name}`}
+                          onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="composer">
                   <form id="form" onSubmit={handleChatSubmit}>
                     <input
@@ -692,7 +711,7 @@ export default function App() {
                       className="plus"
                       type="button"
                       aria-label="Add file"
-                      title="Attach statement"
+                      title="Attach statement or billing document"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <svg className="icon" viewBox="0 0 24 24" width="18" height="18">
@@ -704,7 +723,7 @@ export default function App() {
                       value={inputVal}
                       onChange={e => setInputVal(e.target.value)}
                       placeholder="Message GLANCE or attach a statement..."
-                      maxLength={2000}
+                      maxLength={1000}
                       autoComplete="off"
                       aria-label="Message"
                     />
@@ -716,22 +735,8 @@ export default function App() {
                     </button>
                   </form>
                 </div>
-                {selectedFile && (
-                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%', margin: '8px auto 0' }}>
-                    <div className="filePill">
-                      <span>Attached · {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
-                      <button
-                        className="filePillRemove"
-                        type="button"
-                        onClick={clearSelectedFile}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                )}
                 <div className="fine">
-                  INTERACTIVE STATEMENT LAB · SECURE &amp; SANITIZED
+                  ENTERPRISE BFSI · STATEMENT SIMPLIFIER · SECURE & SANITIZED
                 </div>
               </div>
             </main>
