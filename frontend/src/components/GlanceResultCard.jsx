@@ -25,7 +25,43 @@ function toPercent(val) {
   return Math.max(0, Math.min(100, Math.round(num)))
 }
 
-const PALETTE = ['#078cff', '#38bdf8', '#34d399', '#fbbf24', '#f43f5e', '#a855f7', '#6366f1']
+const PALETTE = ['#078cff', '#38bdf8', '#34d399', '#facc15', '#f43f5e', '#a855f7', '#6366f1']
+
+function parseRejection(data) {
+  const rej = data?.rejection_details || {}
+  const msg = typeof data?.message === 'string' ? data.message : ''
+  let title = rej.title || data?.title || ''
+  let filename = rej.filename || data?.filename || data?.document?.filename || data?.document_metadata?.filename || 'Uploaded Document'
+  let reason = rej.reason || rej.why || ''
+  let technicalDetail = rej.technical_detail || ''
+  let supported = rej.supported_formats || ''
+  let howToFix = rej.how_to_fix || ''
+
+  if (msg.includes('•') || (!reason && msg.includes('File Not Accepted'))) {
+    const parts = msg.split(/\s*•\s*/)
+    parts.forEach((p, idx) => {
+      const part = p.trim()
+      if (idx === 0 && !title) {
+        title = part
+      } else if (part.toLowerCase().startsWith('file:') && !filename) {
+        filename = part.substring(part.indexOf(':') + 1).trim()
+      } else if (part.toLowerCase().includes('why it was not accepted:') && !reason) {
+        reason = part.substring(part.indexOf(':') + 1).trim()
+      } else if (part.toLowerCase().includes('technical details:') && !technicalDetail) {
+        technicalDetail = part.substring(part.indexOf(':') + 1).trim()
+      } else if (part.toLowerCase().includes('supported formats') && !supported) {
+        supported = part.substring(part.indexOf(':') + 1).trim()
+      } else if (part.toLowerCase().includes('how to fix') && !howToFix) {
+        howToFix = part.substring(part.indexOf(':') + 1).trim()
+      }
+    })
+  }
+  if (!title) title = 'File Not Accepted'
+    const isSecurity = /credential|secret|access key|password|token/i.test(title + ' ' + reason);
+  let reasonLabel = isSecurity ? 'Security & Policy Violation' : 'Reason for Rejection';
+  const isFormatIssue = /format|extension|unsupported|binary|unreadable|corrupt|container|mime/i.test(title + ' ' + reason + ' ' + technicalDetail) && !isSecurity && !/empty|blank/i.test(title + ' ' + reason);
+  return { title, filename, reason, reasonLabel, technicalDetail, supported: isFormatIssue ? supported : '', howToFix }
+}
 
 export default function GlanceResultCard({ data, guardrails: propGuardrails, onFollowUp }) {
   const [activeTab, setActiveTab] = useState('visuals') // 'visuals', 'donut', 'bars', 'trend', 'plain'
@@ -38,10 +74,65 @@ export default function GlanceResultCard({ data, guardrails: propGuardrails, onF
   const guardrails = propGuardrails || data?.guardrails || {}
   const traceId = data?.trace_id || guardrails?.trace_id || ''
 
-  // Mode 1: Conversational / general response
+  // 1. Structured File Rejection Card
+  if (data.rejected || data.rejection_details || (typeof data.message === 'string' && data.message.includes('File Not Accepted'))) {
+    const rej = parseRejection(data)
+
+    return (
+      <div className="glanceRejectionCard">
+        <div className="glanceRejectionHeader">
+          <div className="glanceRejectionBadge">
+            <span>⚠️</span>
+            <span>{rej.title}</span>
+          </div>
+          <span className="glanceRejectionFile">
+            📄 {rej.filename}
+          </span>
+        </div>
+
+        <div className="glanceRejectionBody">
+          {rej.reason && (
+            <div className="rejectionSection">
+              <span className="rejectionLabel">{rej.reasonLabel || 'Reason for Rejection'}</span>
+              <p className="rejectionValue">{rej.reason}</p>
+            </div>
+          )}
+
+          {rej.technicalDetail && (
+            <div className="rejectionSection">
+              <span className="rejectionLabel">Technical Details</span>
+              <p className="rejectionValue mono">{rej.technicalDetail}</p>
+            </div>
+          )}
+
+          {rej.supported && (
+            <div className="rejectionSection">
+              <span className="rejectionLabel">Supported Formats for GLANCE</span>
+              <p className="rejectionValue">{rej.supported}</p>
+            </div>
+          )}
+
+          {rej.howToFix && (
+            <div className="rejectionSection fixSection">
+              <span className="rejectionLabel">How to Fix & Re-upload</span>
+              <p className="rejectionValue">{rej.howToFix}</p>
+            </div>
+          )}
+
+          {!rej.reason && (
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '13.5px', color: '#e2e8f0' }}>
+              {data.message}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Mode 2: Conversational / general response
   if (data.type === 'chat' || (!data.headline_picture && !data.key_figures && data.message)) {
     return (
-      <div className="plainChatBubble">
+      <div className="plainChatBubble" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
         {guardrails?.status === 'BLOCKED' && (
           <div style={{ marginBottom: '12px' }}>
             <span
@@ -345,7 +436,7 @@ export default function GlanceResultCard({ data, guardrails: propGuardrails, onF
               <svg viewBox="0 0 200 130" className="gaugeSvg">
                 {/* Dial Arc segments */}
                 <path d="M 25 100 A 75 75 0 0 1 70 36" fill="none" stroke="#f43f5e" strokeWidth="14" strokeLinecap="round" opacity="0.8" />
-                <path d="M 72 35 A 75 75 0 0 1 128 35" fill="none" stroke="#fbbf24" strokeWidth="14" opacity="0.8" />
+                <path d="M 72 35 A 75 75 0 0 1 128 35" fill="none" stroke="#facc15" strokeWidth="14" opacity="0.8" />
                 <path d="M 130 36 A 75 75 0 0 1 175 100" fill="none" stroke="#34d399" strokeWidth="14" strokeLinecap="round" opacity="0.8" />
                 {/* Needle */}
                 <circle cx="100" cy="95" r="7" fill="#38bdf8" />

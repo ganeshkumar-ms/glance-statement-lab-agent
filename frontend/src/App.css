@@ -85,8 +85,8 @@ button, input, textarea {
   position: fixed;
   inset: -35%;
   pointer-events: none;
-  background: radial-gradient(circle at 24% 25%, #efe7d144, transparent 23%),
-              radial-gradient(circle at 78% 70%, #887d6135, transparent 25%);
+  background: radial-gradient(circle at 24% 25%, rgba(7, 140, 255, 0.14), transparent 45%),
+              radial-gradient(circle at 78% 70%, rgba(56, 189, 248, 0.10), transparent 50%);
   filter: none;
   animation: drift 14s ease-in-out infinite alternate;
 }
@@ -107,7 +107,7 @@ button, input, textarea {
   transform: translate(-50%, -50%);
   background: radial-gradient(circle, var(--a1), transparent 68%);
   opacity: 0.045;
-  box-shadow: 0 0 0 70px #efe7d108;
+  box-shadow: 0 0 0 70px rgba(7, 140, 255, 0.04);
   animation: themePattern 5s ease-in-out infinite;
   pointer-events: none;
 }
@@ -235,7 +235,7 @@ header {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #efe7d136;
+  border: 1px solid rgba(7, 140, 255, 0.22);
   border-radius: 22px;
   background: #051a2c;
   box-shadow: 0 22px 80px rgba(0, 0, 0, 0.7);
@@ -250,7 +250,7 @@ header {
   border: 0;
   outline: 0;
   background: transparent;
-  color: #fdfaf0;
+  color: #f0f7ff;
   padding: 12px 14px;
   font-size: 15px;
 }
@@ -299,7 +299,7 @@ header {
 
 .send:hover, .chatSend:hover {
   transform: translateY(-1px) scale(1.03);
-  background: #faf4e3;
+  background: #0284c7;
 }
 
 .fileInput {
@@ -357,7 +357,7 @@ header {
   min-height: auto;
   text-align: left;
   padding: 14px 16px;
-  border: 1px solid #efe7d122;
+  border: 1px solid rgba(7, 140, 255, 0.18);
   border-radius: 16px;
   color: var(--text);
   background: #051a2c;
@@ -439,7 +439,7 @@ header {
 /* Sidebar */
 .side {
   border-right: 1px solid rgba(7, 140, 255, 0.14);
-  background: rgba(17, 16, 11, 0.92);
+  background: rgba(5, 26, 44, 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   padding: 20px 14px;
@@ -578,7 +578,7 @@ header {
   gap: 4px;
   padding: 3px;
   border-radius: 9px;
-  background: rgba(17, 16, 11, 0.88);
+  background: rgba(5, 26, 44, 0.88);
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
   border: 1px solid rgba(7, 140, 255, 0.36);
@@ -617,7 +617,7 @@ header {
 }
 
 .histIcon.edit {
-  color: #f6eed8;
+  color: #38bdf8;
   background: rgba(7, 140, 255, 0.20);
   border: 1px solid rgba(7, 140, 255, 0.42);
 }
@@ -685,7 +685,7 @@ header {
   padding: 6px 10px;
   border: 1px solid rgba(7, 140, 255, 0.55);
   border-radius: 8px;
-  background: #17140d;
+  background: #051a2c;
   color: #ffffff;
   font-size: 14px;
   outline: 0;
@@ -796,7 +796,7 @@ header {
 .ai {
   align-self: flex-start;
   background: #051a2c;
-  border: 1px solid #efe7d122;
+  border: 1px solid rgba(7, 140, 255, 0.18);
   border-radius: 18px 18px 18px 4px;
   width: 100%;
 }
@@ -810,7 +810,7 @@ header {
   padding: 8px 10px;
   margin-bottom: 8px;
   border-radius: 10px;
-  background: rgba(17, 16, 11, 0.45);
+  background: rgba(5, 26, 44, 0.45);
   border: 1px solid rgba(7, 140, 255, 0.25);
 }
 
@@ -850,14 +850,14 @@ header {
 
 .userFileViewBtn:hover {
   background: #38bdf8;
-  color: #14120c;
+  color: #020c16;
 }
 
 /* Thinking indicator */
 .thinking {
   align-self: flex-start;
   padding: 13px 16px;
-  border: 1px solid #efe7d122;
+  border: 1px solid rgba(7, 140, 255, 0.18);
   border-radius: 18px 18px 18px 4px;
   background: #051a2c;
   display: flex;
@@ -869,7 +869,7 @@ header {
   font-weight: 800;
   letter-spacing: 3px;
   font-size: 12px;
-  background: linear-gradient(90deg, #ffffff, #38bdf8, #887d61, #38bdf8);
+  background: linear-gradient(90deg, #ffffff, #38bdf8, #078cff, #38bdf8);
   background-size: 240% 240%;
   animation: flow 6s ease infinite;
   -webkit-background-clip: text;
@@ -910,7 +910,7 @@ header {
   max-width: 820px;
   margin: auto;
   padding: 8px;
-  border: 1px solid #efe7d122;
+  border: 1px solid rgba(7, 140, 255, 0.18);
   border-radius: 18px;
   background: #051a2c;
   box-shadow: 0 12px 42px rgba(0, 0, 0, 0.55);
@@ -938,7 +938,7 @@ header {
 .plainChatBubble {
   font-size: 15px;
   line-height: 1.65;
-  color: #fdfaf0;
+  color: #f0f7ff;
   white-space: pre-wrap;
 }
 
@@ -981,9 +981,9 @@ header {
 }
 
 .clarityPill.caution {
-  background: rgba(245, 158, 11, 0.16);
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  color: #fcd34d;
+  background: rgba(250, 204, 21, 0.16);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  color: #facc15;
 }
 
 .clarityPill.alert {
@@ -1015,7 +1015,7 @@ header {
   font-size: 12px;
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #dcd4bf;
+  color: #94a3b8;
 }
 
 .riskBadge.risk-high, .riskBadge.risk-elevated {
@@ -1031,7 +1031,7 @@ header {
 }
 
 .clearPictureBox {
-  background: rgba(17, 16, 11, 0.65);
+  background: rgba(5, 26, 44, 0.65);
   border-left: 3px solid #38bdf8;
   border-radius: 0 12px 12px 0;
   padding: 12px 15px;
@@ -1050,7 +1050,7 @@ header {
   margin: 0;
   font-size: 14.5px;
   line-height: 1.6;
-  color: #f5efe0;
+  color: #f0f7ff;
 }
 
 /* Compact Horizontal Metrics Strip (No Bulky 4-Box Grid) */
@@ -1061,7 +1061,7 @@ header {
   gap: 12px;
   padding: 9px 14px;
   border-radius: 10px;
-  background: rgba(17, 16, 11, 0.55);
+  background: rgba(5, 26, 44, 0.55);
   border: 1px solid rgba(7, 140, 255, 0.16);
   min-height: 38px;
 }
@@ -1114,7 +1114,7 @@ header {
 .figureCard {
   padding: 11px 13px;
   border-radius: 12px;
-  background: rgba(17, 16, 11, 0.55);
+  background: rgba(5, 26, 44, 0.55);
   border: 1px solid rgba(7, 140, 255, 0.18);
 }
 
@@ -1123,7 +1123,7 @@ header {
 }
 
 .figureCard.emp-warning {
-  border-color: rgba(245, 158, 11, 0.42);
+  border-color: rgba(250, 204, 21, 0.42);
 }
 
 .figLabel {
@@ -1141,7 +1141,7 @@ header {
 
 .figNote {
   font-size: 12px;
-  color: #cfc6ae;
+  color: #849bb4;
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -1153,7 +1153,7 @@ header {
   gap: 10px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(17, 16, 11, 0.55);
+  background: rgba(5, 26, 44, 0.55);
   border: 1px solid rgba(7, 140, 255, 0.16);
 }
 
@@ -1173,7 +1173,7 @@ header {
 
 .barLabel {
   font-weight: 600;
-  color: #fdfaf0;
+  color: #f0f7ff;
 }
 
 .barMeta {
@@ -1196,7 +1196,7 @@ header {
 .barFill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #887d61, #38bdf8);
+  background: linear-gradient(90deg, #078cff, #38bdf8);
 }
 
 .barDetail {
@@ -1209,7 +1209,7 @@ header {
   border: 1px solid rgba(7, 140, 255, 0.18);
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(17, 16, 11, 0.5);
+  background: rgba(5, 26, 44, 0.5);
 }
 
 .glanceTabs {
@@ -1295,7 +1295,7 @@ header {
 }
 
 .sevTag.sev-high { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
-.sevTag.sev-medium { background: rgba(245, 158, 11, 0.22); color: #fcd34d; }
+.sevTag.sev-medium { background: rgba(250, 204, 21, 0.22); color: #facc15; }
 .sevTag.sev-low { background: rgba(7, 140, 255, 0.16); color: #38bdf8; }
 
 .actionsList {
@@ -1305,7 +1305,7 @@ header {
   flex-direction: column;
   gap: 7px;
   font-size: 14px;
-  color: #f5efe0;
+  color: #f0f7ff;
 }
 
 .followupsRow {
@@ -1353,8 +1353,8 @@ header {
 
 /* Side-by-side Document Viewer */
 .docViewer {
-  border-left: 1px solid #efe7d122;
-  background: #1a1711;
+  border-left: 1px solid rgba(7, 140, 255, 0.18);
+  background: #051a2c;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1516,7 +1516,7 @@ header {
     inset: 0;
     z-index: 80;
     width: 100%;
-    background: rgba(17, 16, 11, 0.98);
+    background: rgba(5, 26, 44, 0.98);
   }
   .drawerClose {
     display: grid;
@@ -2020,7 +2020,7 @@ html, body {
   font-size: 10.5px;
 }
 .gaugeZone.red { color: #f43f5e; }
-.gaugeZone.yellow { color: #fbbf24; }
+.gaugeZone.yellow { color: #facc15; }
 .gaugeZone.green { color: #34d399; }
 
 .trendChartBox {
@@ -2031,4 +2031,102 @@ html, body {
 .trendSvg {
   width: 100%;
   height: 100%;
+}
+
+
+/* ============================================================
+   STRUCTURED FILE REJECTION CARD
+   ============================================================ */
+.glanceRejectionCard {
+  background: rgba(5, 26, 44, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.glanceRejectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.glanceRejectionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.glanceRejectionFile {
+  font-size: 12px;
+  color: #cbd5e1;
+  background: rgba(7, 140, 255, 0.08);
+  border: 1px solid rgba(7, 140, 255, 0.22);
+  padding: 4px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.glanceRejectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.glanceRejectionCard .rejectionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.glanceRejectionCard .rejectionLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.glanceRejectionCard .rejectionValue {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #e2e8f0;
+}
+
+.glanceRejectionCard .rejectionValue.mono {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: #cbd5e1;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glanceRejectionCard .rejectionSection.fixSection {
+  background: rgba(7, 140, 255, 0.08);
+  border: 1px solid rgba(7, 140, 255, 0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
 }
