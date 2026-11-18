@@ -454,6 +454,10 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                 raw_output = response['output']['message']['content'][0]['text']
                 parsed = clean_and_parse_json(raw_output)
                 if isinstance(parsed, dict) and ('type' in parsed or 'headline_picture' in parsed or 'message' in parsed):
+                    if not file_name and len(clean.split()) < 14 and parsed.get('type') != 'chat':
+                        hp = parsed.get('headline_picture') or {}
+                        msg_txt = parsed.get('message') or hp.get('summary') or hp.get('title') or "Please upload a statement file or paste statement details to analyze."
+                        return {'type': 'chat', 'message': msg_txt}
                     if parsed.get('type') != 'chat':
                         parsed['type'] = 'statement_analysis'
                         parsed = _enrich_real_metrics_and_traceability(parsed, safe_text, file_name, doc_meta)
