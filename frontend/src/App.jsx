@@ -60,14 +60,14 @@ function cleanTitle(str) {
 function deriveSmartTitle(userText, fileName, aiResponse) {
   try {
     if (aiResponse && aiResponse.type === 'statement_analysis' && typeof aiResponse.statement_title === 'string' && aiResponse.statement_title.trim()) {
-      return shorten(cleanTitle(aiResponse.statement_title), 38)
+      return shorten(cleanTitle(aiResponse.statement_title), 120)
     }
 
     if (fileName && typeof fileName === 'string') {
       const base = fileName.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim()
       if (base) {
         const formatted = base.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-        return shorten(formatted, 38)
+        return shorten(formatted, 120)
       }
     }
 
@@ -77,9 +77,9 @@ function deriveSmartTitle(userText, fileName, aiResponse) {
       clean = clean.replace(/^(?:this|the|my|our|an?|some)\s+/i, '')
       clean = clean.replace(/^[?:!.,-\s]+/, '')
       if (clean.length > 2) {
-        const words = clean.split(' ').slice(0, 5).join(' ')
+        const words = clean.split(' ').slice(0, 12).join(' ')
         const capitalized = words.charAt(0).toUpperCase() + words.slice(1)
-        return shorten(capitalized, 38)
+        return shorten(capitalized, 120)
       }
     }
   } catch (e) {
@@ -629,7 +629,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="messages" id="messages" ref={messagesRef} aria-live="polite">
+              <div className="messages" ref={messagesRef} id="messages" aria-live="polite">
                 {messages.length === 0 && (
                   <div className="card emptyCard" style={{ margin: '40px auto' }}>
                     <small>EMPTY WORKSPACE</small>
