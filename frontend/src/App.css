@@ -1120,42 +1120,54 @@ header {
 
 .figuresGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 10px;
 }
 
 .figureCard {
-  padding: 11px 13px;
-  border-radius: 12px;
-  background: rgba(5, 26, 44, 0.55);
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(5, 22, 40, 0.72);
   border: 1px solid rgba(7, 140, 255, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.figureCard:hover {
+  border-color: rgba(56, 189, 248, 0.42);
+  background: rgba(7, 28, 50, 0.85);
 }
 
 .figureCard.emp-positive {
-  border-color: rgba(16, 185, 129, 0.35);
+  border-color: rgba(16, 185, 129, 0.32);
 }
 
 .figureCard.emp-warning {
-  border-color: rgba(250, 204, 21, 0.42);
+  border-color: rgba(250, 204, 21, 0.35);
 }
 
 .figLabel {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #38bdf8;
 }
 
 .figValue {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
-  font-family: var(--font-mono);
+  color: #f8fafc;
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+  word-break: break-word;
 }
 
 .figNote {
   font-size: 12px;
-  color: #849bb4;
-  margin-top: 4px;
+  color: #94a3b8;
   line-height: 1.4;
 }
 
@@ -2463,12 +2475,13 @@ html, body {
 }
 
 .glnSourceTrace {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px dashed rgba(7, 140, 255, 0.2);
+  margin-top: auto;
+  padding-top: 7px;
+  border-top: 1px solid rgba(7, 140, 255, 0.14);
   font-size: 11px;
-  color: #94a3b8;
-  font-style: italic;
+  color: #64748b;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .glnSixGrid {
@@ -3007,4 +3020,161 @@ html, body {
   .glnFlowArrow {
     display: none;
   }
+}
+
+/* Watchouts & Governance Flags + Suggested Deep-Dives */
+.glanceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.sectionHeader {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+
+.watchoutsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.watchoutCard {
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: rgba(5, 26, 44, 0.72);
+  border: 1px solid rgba(7, 140, 255, 0.22);
+  border-left: 3px solid #38bdf8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.watchoutCard.sev-high {
+  border-left-color: #f97316;
+  border-color: rgba(249, 115, 22, 0.35);
+}
+
+.watchoutCard.sev-medium {
+  border-left-color: #facc15;
+  border-color: rgba(250, 204, 21, 0.32);
+}
+
+.watchoutCard.sev-low {
+  border-left-color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.watchoutTop {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sevBadge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sevBadge.sev-high {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.65);
+}
+
+.sevBadge.sev-medium {
+  background: rgba(250, 204, 21, 0.18);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.55);
+}
+
+.sevBadge.sev-low {
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+.watchoutTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.watchoutImpact {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+.watchoutAction {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(7, 140, 255, 0.08);
+  border: 1px solid rgba(7, 140, 255, 0.2);
+}
+
+.actionTag {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #38bdf8;
+  margin-right: 4px;
+}
+
+.followupsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(7, 140, 255, 0.18);
+}
+
+.followupsLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+
+.followupsChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.followupChip {
+  background: rgba(7, 140, 255, 0.10);
+  border: 1px solid rgba(7, 140, 255, 0.32);
+  color: #7dd3fc;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+}
+
+.followupChip:hover {
+  background: rgba(7, 140, 255, 0.24);
+  color: #ffffff;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
 }

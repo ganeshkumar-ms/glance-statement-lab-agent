@@ -5,6 +5,7 @@ import json
 import os
 import random
 import re
+import time
 from pathlib import Path
 import boto3
 from services import guardrail_service
@@ -24,8 +25,8 @@ def get_bedrock_client():
     )
 
 
-MODEL_ID = 'us.amazon.nova-pro-v1:0'
-FALLBACK_MODEL_ID = 'us.anthropic.claude-3-haiku-20240307-v1:0'
+MODEL_ID = 'us.amazon.nova-lite-v1:0'
+FALLBACK_MODEL_ID = 'us.amazon.nova-pro-v1:0'
 
 GLANCE_SYSTEM_PROMPT = """You are GLANCE, an Enterprise Document & Statement Visual Intelligence Engine ("Understand the document first. Visualize only what the evidence supports.").
 
@@ -38,13 +39,13 @@ NEVER force every uploaded document into a generic financial dashboard!
 5. ZERO EMOJIS anywhere in JSON values.
 
 ==================================================
-MODE 1: CONVERSATIONAL ASSISTANCE (type: "chat")
+MODE 1: CONVERSATIONAL & FOLLOW-UP ASSISTANCE (type: "chat")
 ==================================================
-Trigger ONLY when the user sends a greeting or general question without a document or statement to analyze.
+Trigger when the user sends a greeting, asks a general question within GLANCE's document/statement intelligence domain, or asks a follow-up / "tell extra" / "more specific" question about a previously analyzed document or statement (using conversation history). Provide a thorough, specific, evidence-grounded answer.
 Output ONLY:
 {
   "type": "chat",
-  "message": "<Your natural reply without emojis>"
+  "message": "<Your natural, detailed reply without emojis>"
 }
 
 ==================================================
@@ -142,6 +143,8 @@ STRICT RULES:
 - Output ONLY raw valid JSON.
 - If `is_financial` is false, `visual_breakdown` and `cash_flow_series` MUST be empty arrays `[]`, while `section_coverage`, `key_topics`, `technical_or_structural_details`, and `six_outputs` MUST be richly populated from the real document!
 - NEVER claim a readable document is encrypted!
+- If PDF font extraction shows a lowercase 'n' immediately before a currency figure (e.g. 'n30', 'n175', 'n25'), interpret and format it cleanly as '₹' (e.g. '₹30', '₹175', '₹25').
+- The text contains page markers like "[Page N of M]". Analyze ALL pages, not only the first. `section_coverage` MUST include entries drawn from every page/section of the document, and `key_topics`, `key_figures` and `watchouts` must reflect content found across all pages.
 """
 
 RAPID_INTERCEPTOR_PATTERNS = [
@@ -162,11 +165,52 @@ RAPID_INTERCEPTOR_PATTERNS = [
 ]
 
 
+def _page_balanced_context(text: str, budget: int = 30000) -> str:
+    """Keep every page represented: if the text exceeds the budget, give each
+    '[Page N of M]' section an equal share instead of cutting off later pages."""
+    text = text or ''
+    if len(text) <= budget:
+        return text
+    parts = re.split(r'(?=\[Page \d+ of \d+\])', text)
+    parts = [p for p in parts if p.strip()]
+    if len(parts) <= 1:
+        head = int(budget * 0.5)
+        tail = int(budget * 0.25)
+        mid_budget = budget - head - tail
+        mid_start = max(head, (len(text) - mid_budget) // 2)
+        return (
+            text[:head]
+            + '\n[... middle section condensed ...]\n'
+            + text[mid_start:mid_start + mid_budget]
+            + '\n[... later section condensed ...]\n'
+            + text[-tail:]
+        )
+    share = max(400, budget // len(parts))
+    out = []
+    for p in parts:
+        if len(p) <= share:
+            out.append(p)
+        else:
+            keep_head = int(share * 0.7)
+            keep_tail = share - keep_head
+            out.append(p[:keep_head] + ' [...] ' + p[-keep_tail:])
+    return '\n\n'.join(out)
+
+
 def clean_and_parse_json(raw: str) -> dict:
     text = (raw or '').strip()
-    text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.MULTILINE)
-    text = re.sub(r'\s*```$', '', text, flags=re.MULTILINE).strip()
 
+    # 1. First attempt: Extract from markdown code fences if present
+    fence_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
+    if fence_match:
+        try:
+            parsed = json.loads(fence_match.group(1).strip())
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+
+    # 2. Second attempt: Direct JSON parse
     try:
         parsed = json.loads(text)
         if isinstance(parsed, dict):
@@ -174,10 +218,11 @@ def clean_and_parse_json(raw: str) -> dict:
     except json.JSONDecodeError:
         pass
 
+    # 3. Third attempt: Greedy outer brace match
     match = re.search(r'(\{[\s\S]*\})', text)
     if match:
         try:
-            parsed = json.loads(match.group(1))
+            parsed = json.loads(match.group(1).strip())
             if isinstance(parsed, dict):
                 return parsed
         except json.JSONDecodeError:
@@ -376,7 +421,7 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                 f"[VERIFIED EXTRACTION METADATA: filename={file_name}, pages={doc_meta.get('pages', 1)}, "
                 f"words={doc_meta.get('words', 0)}, extraction_status={doc_meta.get('extraction_status', 'SUCCESS')}]\n"
             )
-        prompt_text = f"{meta_header}{safe_text[:12000]}"
+        prompt_text = f"{meta_header}{_page_balanced_context(safe_text, 30000)}"
 
         messages.append({
             'role': 'user',
@@ -397,14 +442,14 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
 
         start_time = time.time()
         for model in (MODEL_ID, FALLBACK_MODEL_ID):
-            if time.time() - start_time > 15:
+            if time.time() - start_time > 22:
                 break
             try:
                 response = client.converse(
                     modelId=model,
                     messages=sanitized_messages,
                     system=[{'text': GLANCE_SYSTEM_PROMPT}],
-                    inferenceConfig={'temperature': 0.1, 'maxTokens': 1100},
+                    inferenceConfig={'temperature': 0.1, 'maxTokens': 2500},
                 )
                 raw_output = response['output']['message']['content'][0]['text']
                 parsed = clean_and_parse_json(raw_output)

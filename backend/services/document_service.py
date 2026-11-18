@@ -102,7 +102,7 @@ def _extract_pdf_with_bedrock(content_bytes: bytes) -> str:
                     {'text': 'Read ALL pages of this PDF from start to finish and transcribe all headings, text, tables, dates, figures, and technical details verbatim.'}
                 ]
             }],
-            inferenceConfig={'maxTokens': 2500, 'temperature': 0.0}
+            inferenceConfig={'maxTokens': 6000, 'temperature': 0.0}
         )
         return res['output']['message']['content'][0]['text'].strip()
     except Exception:
@@ -260,14 +260,16 @@ def extract_document(filename: str, content_bytes: bytes) -> dict:
         extraction_detail = f'Extraction error: {e}'
         text = ''
 
-    cleaned_text = re.sub(r'[ \t]+', ' ', text).replace('(cid:127)', '•').strip()
+    cleaned_text = re.sub(r'[ \t]+', ' ', text).replace('(cid:127)', '•')
+    # Fix common PDF font-encoding artifact where the Indian Rupee symbol (₹) extracts as 'n' before digits (e.g. n30 -> ₹30)
+    cleaned_text = re.sub(r'(?<![A-Za-z0-9_])n(?=\d[\d,]*(?:\.\d+)?\b)', '₹', cleaned_text).strip()
     words = len(cleaned_text.split()) if cleaned_text else 0
     read_mins = max(1, math.ceil(words / 200)) if words > 0 else 1
     reading_time_str = f"{read_mins} min read ({words:,} words)" if words >= 100 else f"~{max(15, words)} sec ({words} words)"
     preview = cleaned_text[:1200].strip() + ('...' if len(cleaned_text) > 1200 else '')
 
     return {
-        'text': cleaned_text[:45000],
+        'text': cleaned_text[:150000],
         'words': words,
         'pages': pages_count,
         'reading_time': reading_time_str,

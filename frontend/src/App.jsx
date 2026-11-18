@@ -336,6 +336,12 @@ export default function App() {
     clearSelectedFile()
     setLoading(true)
 
+    const isRetryOrRefine = !fileToSend && /\b(retry|try again|re-?analyze|redo|more specific|be more specific|more detail|deeper)\b/i.test(cleanText)
+    const priorFileMsg = isRetryOrRefine
+      ? [...currentList].reverse().find(m => m.role === 'user' && typeof File !== 'undefined' && m.file instanceof File)
+      : null
+    const effectiveFile = fileToSend || priorFileMsg?.file || null
+
     // Build prior conversation history BEFORE current user message for clean alternation
     const historyPayload = currentList
       .filter(m => m.role === 'user' || (m.role === 'ai' && m.data))
@@ -344,13 +350,22 @@ export default function App() {
         role: m.role,
         content: m.role === 'user'
           ? (m.content || m.file?.name || '')
-          : (m.data?.headline_picture || m.data?.message || 'GLANCE statement summary')
+          : (m.data?.type === 'statement_analysis'
+              ? JSON.stringify({
+                  title: m.data.statement_title,
+                  document_class: m.data.document_class,
+                  headline_picture: m.data.headline_picture,
+                  key_topics: m.data.key_topics,
+                  key_figures: (m.data.key_figures || []).slice(0, 10),
+                  watchouts: (m.data.watchouts || []).slice(0, 8),
+                }).slice(0, 2400)
+              : (m.data?.headline_picture || m.data?.message || 'GLANCE statement summary'))
       }))
 
     try {
       const [result] = await Promise.all([
         analyzeStatement({
-          file: fileToSend,
+          file: effectiveFile,
           text: cleanText,
           conversationHistory: historyPayload
         }),
