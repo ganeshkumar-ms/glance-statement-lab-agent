@@ -376,7 +376,7 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
                 f"[VERIFIED EXTRACTION METADATA: filename={file_name}, pages={doc_meta.get('pages', 1)}, "
                 f"words={doc_meta.get('words', 0)}, extraction_status={doc_meta.get('extraction_status', 'SUCCESS')}]\n"
             )
-        prompt_text = f"{meta_header}{safe_text}"
+        prompt_text = f"{meta_header}{safe_text[:12000]}"
 
         messages.append({
             'role': 'user',
@@ -395,13 +395,16 @@ def analyze_statement(content: str, file_name: str = '', conversation_history: l
         else:
             sanitized_messages[-1] = {'role': 'user', 'content': [{'text': prompt_text}]}
 
+        start_time = time.time()
         for model in (MODEL_ID, FALLBACK_MODEL_ID):
+            if time.time() - start_time > 15:
+                break
             try:
                 response = client.converse(
                     modelId=model,
                     messages=sanitized_messages,
                     system=[{'text': GLANCE_SYSTEM_PROMPT}],
-                    inferenceConfig={'temperature': 0.1, 'maxTokens': 1500},
+                    inferenceConfig={'temperature': 0.1, 'maxTokens': 1100},
                 )
                 raw_output = response['output']['message']['content'][0]['text']
                 parsed = clean_and_parse_json(raw_output)
