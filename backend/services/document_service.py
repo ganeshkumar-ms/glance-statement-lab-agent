@@ -110,15 +110,28 @@ def _extract_pdf_with_bedrock(content_bytes: bytes) -> str:
 
 
 def _extract_pdf_stdlib(content_bytes: bytes) -> str:
-    """Pure-stdlib PDF text extractor supporting uncompressed & FlateDecode streams."""
+    """Pure-stdlib PDF text extractor supporting /ASCII85Decode + /FlateDecode, /FlateDecode, and raw streams."""
+    import base64
     chunks = []
     stream_pattern = re.compile(rb'stream\r?\n(.*?)endstream', re.S)
     for match in stream_pattern.finditer(content_bytes):
         data = match.group(1).rstrip(b'\r\n')
+        decoded = data
+        # 1. Decode Adobe ASCII85 (~> terminator) if present
+        stripped = decoded.strip()
+        if b'~>' in stripped:
+            try:
+                decoded = base64.a85decode(stripped, adobe=True)
+            except Exception:
+                try:
+                    decoded = base64.a85decode(stripped.split(b'~>', 1)[0] + b'~>', adobe=True)
+                except Exception:
+                    pass
+        # 2. Decompress FlateDecode (zlib) if compressed
         try:
-            decoded = zlib.decompress(data)
+            decoded = zlib.decompress(decoded)
         except Exception:
-            decoded = data
+            pass
         text_str = decoded.decode('latin-1', errors='ignore')
         for paren in re.findall(r'\(([^()]*)\)', text_str):
             cleaned = paren.replace(r'\(', '(').replace(r'\)', ')').replace(r'\\', '\\').strip()
@@ -131,7 +144,9 @@ def _extract_pdf_stdlib(content_bytes: bytes) -> str:
             if cleaned and sum(ch.isalnum() or ch.isspace() for ch in cleaned) >= len(cleaned) * 0.65:
                 if any(ch.isalpha() for ch in cleaned):
                     chunks.append(cleaned)
-    return ' '.join(chunks[:800]).strip()
+    joined = ' '.join(chunks).strip()
+    return re.sub(r'\s+', ' ', joined)
+
 
 
 def extract_document(filename: str, content_bytes: bytes) -> dict:
