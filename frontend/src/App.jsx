@@ -169,13 +169,6 @@ export default function App() {
   const fileInputRef = useRef(null)
   const homeFileInputRef = useRef(null)
   const messagesRef = useRef(null)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.self !== window.top) {
-      document.documentElement.classList.add('in-iframe')
-    }
-  }, [])
-
   useEffect(() => {
     // Strip transient blob: URLs before serializing to localStorage
     const cleanForStorage = sessions
